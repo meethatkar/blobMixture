@@ -4,15 +4,11 @@ import CustomShaderMaterial from "three-custom-shader-material/vanilla";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
-// import GUI from "lil-gui";
+
 import { Text } from "troika-three-text";
 import vertexShader from "./shaders/vertex.glsl";
 import textVertex from "./shaders/textVertex.glsl";
-import fragmentShader from "./shaders/fragment.glsl";
 import gsap from "gsap";
-
-// GUI Setup
-// const gui = new GUI({ title: "Blob Shader Controls" });
 
 const blobs = [
   {
@@ -104,29 +100,6 @@ const uniforms = {
   },
 };
 
-// Add Uniform Controls to GUI
-// const bigWavesFolder = gui.addFolder("Big Waves");
-// bigWavesFolder
-//   .add(uniforms.uPositionStrength, "value", 0, 1, 0.005)
-//   .name("Position Strength");
-// bigWavesFolder
-//   .add(uniforms.uPositionFrequency, "value", 0, 10, 0.1)
-//   .name("Position Frequency");
-// bigWavesFolder
-//   .add(uniforms.uTimeFrequency, "value", 0, 5, 0.05)
-//   .name("Time Frequency");
-
-// const smallWavesFolder = gui.addFolder("Small Waves");
-// smallWavesFolder
-//   .add(uniforms.uSmallWavesPositionStrength, "value", 0, 0.5, 0.005)
-//   .name("Position Strength");
-// smallWavesFolder
-//   .add(uniforms.uSmallWavesPositionFrequency, "value", 0, 10, 0.1)
-//   .name("Position Frequency");
-// smallWavesFolder
-//   .add(uniforms.uSmallWavesTimeFrequency, "value", 0, 5, 0.05)
-//   .name("Time Frequency");
-
 // Geometry
 const mergeGeometry = new mergeVertices(new THREE.IcosahedronGeometry(1, 90));
 
@@ -140,12 +113,6 @@ const material = new CustomShaderMaterial({
   vertexShader,
   uniforms,
 });
-
-// const materialFolder = gui.addFolder("Material");
-// materialFolder.addColor(material, "color");
-// materialFolder.add(material, "metalness", 0, 1, 0.01);
-// materialFolder.add(material, "roughness", 0, 1, 0.01);
-// materialFolder.add(material, "wireframe");
 
 mergeGeometry.computeTangents();
 
