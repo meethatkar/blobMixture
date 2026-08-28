@@ -23,19 +23,20 @@ float getBlob(vec3 position){
 
 void main(){
     vec3 bitangent = cross(tangent.xyz, normal);
-    float shift = 0.07;
-    vec3 A = csm_Position + shift * bitangent;
-    vec3 B = csm_Position - shift * bitangent;
+    float shift = 0.01;
+
+    vec3 posA = csm_Position + shift * tangent.xyz;
+    vec3 posB = csm_Position + shift * bitangent;
 
     float blob = getBlob(csm_Position);
-    csm_Position += blob * normal;
+    vec3 displacedPosition = csm_Position + blob * normal;
 
-    A += getBlob(A)*normal;
-    B += getBlob(B)*normal;
-    
-    // normalize the above values
-    vec3 NA = normalize(A - csm_Position);
-    vec3 NB = normalize(B - csm_Position);
+    vec3 displacedA = posA + getBlob(posA) * normal;
+    vec3 displacedB = posB + getBlob(posB) * normal;
 
-    csm_Normal = -cross(NA,NB);
+    vec3 toA = displacedA - displacedPosition;
+    vec3 toB = displacedB - displacedPosition;
+
+    csm_Position = displacedPosition;
+    csm_Normal = normalize(cross(toA, toB));
 }

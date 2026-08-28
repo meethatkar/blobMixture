@@ -4,6 +4,7 @@ import CustomShaderMaterial from "three-custom-shader-material/vanilla";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 import { Text } from "troika-three-text";
 import vertexShader from "./shaders/vertex.glsl";
@@ -19,9 +20,9 @@ const blobs = [
       uPositionStrength: 0.3,
       uSmallWavePositionFrequency: 0.5,
       uSmallWavePositionStrength: 0.7,
-      roughness: 1,
-      metalness: 0,
-      envMapIntensity: 0.5,
+      roughness: 0.8,
+      metalness: 0.1,
+      envMapIntensity: 0.4,
       clearcoat: 0,
       clearcoatRoughness: 0,
       transmission: 0,
@@ -38,10 +39,10 @@ const blobs = [
       uPositionStrength: 0.276,
       uSmallWavePositionFrequency: 0.899,
       uSmallWavePositionStrength: 1.266,
-      roughness: 0,
-      metalness: 1,
-      // envMapIntensity: 2,
-      clearcoat: 0,
+      roughness: 0.15,
+      metalness: 0.5,
+      envMapIntensity: 0.4,
+      clearcoat: 0.2,
       clearcoatRoughness: 0,
       transmission: 0,
       flatShading: false,
@@ -57,11 +58,11 @@ const blobs = [
       uPositionStrength: 0.99,
       uSmallWavePositionFrequency: 0.378,
       uSmallWavePositionStrength: 0.341,
-      roughness: 0.292,
-      metalness: 0.73,
-      envMapIntensity: 0.86,
-      clearcoat: 1,
-      clearcoatRoughness: 0,
+      roughness: 0.3,
+      metalness: 0.3,
+      envMapIntensity: 0.4,
+      clearcoat: 0.4,
+      clearcoatRoughness: 0.5,
       transmission: 0,
       flatShading: false,
       wireframe: false,
@@ -83,33 +84,41 @@ if (!canvas.classList.contains("webgl")) {
 
 // Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color("#9D73F7");
+scene.background = new THREE.Color("#9D73F7"); //default initial color
 
 // Uniforms
 const uniforms = {
   uTime: { value: 0 },
-  uPositionStrength: { value: blobs[0].config.uPositionStrength },
-  uPositionFrequency: { value: blobs[0].config.uPositionFrequency },
+  uPositionStrength: { value: blobs[currIdx].config.uPositionStrength },
+  uPositionFrequency: { value: blobs[currIdx].config.uPositionFrequency },
   uTimeFrequency: { value: 0.7 },
   uSmallWavesPositionFrequency: {
-    value: blobs[0].config.uSmallWavePositionFrequency,
+    value: blobs[currIdx].config.uSmallWavePositionFrequency,
   },
   uSmallWavesTimeFrequency: { value: 0.7 },
   uSmallWavesPositionStrength: {
-    value: blobs[0].config.uSmallWavePositionStrength,
+    value: blobs[currIdx].config.uSmallWavePositionStrength,
   },
 };
 
 // Geometry
 const mergeGeometry = new mergeVertices(new THREE.IcosahedronGeometry(1, 90));
 
+// Texture Loader Helper
+const textureLoader = new THREE.TextureLoader();
+const loadTexture = (name) => {
+  const tex = textureLoader.load(`/${name}.png`);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+};
+
 // Material
 const material = new CustomShaderMaterial({
   baseMaterial: THREE.MeshPhysicalMaterial,
   // color: 0x00ffcc,
-  metalness: blobs[0].config.metalness,
-  roughness: blobs[0].config.roughness,
-  map: new THREE.TextureLoader().load(`./${blobs[0].config.map}.png`),
+  metalness: blobs[currIdx].config.metalness,
+  roughness: blobs[currIdx].config.roughness,
+  map: loadTexture(blobs[currIdx].config.map),
   vertexShader,
   uniforms,
 });
@@ -158,55 +167,15 @@ const texts = blobs.map((blob, index) => {
 });
 
 // Loading Manager
-const loadingManager = new THREE.LoadingManager(
-  // Loaded
-  () => {
-    console.log("All resources loaded successfully.");
-
-    const tick = () => {
-      // Update uniforms
-      uniforms.uTime.value = clock.getElapsedTime();
-
-      // Update controls
-      // controls.update();
-
-      // Render
-      renderer.render(scene, camera);
-
-      // Call tick again on the next frame
-      window.requestAnimationFrame(tick);
-    };
-    tick();
-
-    let bg = new THREE.Color(blobs[currIdx].background);
-    gsap.to(scene.background, {
-      r: bg.r,
-      g: bg.g,
-      b: bg.b,
-      duration: 1,
-      ease: "linear",
-    });
-  },
-  // Progress
-  (itemUrl, itemsLoaded, itemsTotal) => {
-    const progressRatio = itemsLoaded / itemsTotal;
-    console.log(
-      `Loading progress: ${Math.round(progressRatio * 100)}% (${itemsLoaded}/${itemsTotal})`,
-    );
-  },
-  // Error
-  (url) => {
-    console.error(`There was an error loading ${url}`);
-  },
-);
+const loadingManager = new THREE.LoadingManager();
 
 // Environment Map (HDR)
-const rgbeLoader = new RGBELoader(loadingManager);
-rgbeLoader.load("./garden.hdr", (texture) => {
-  texture.mapping = THREE.EquirectangularReflectionMapping;
-  // scene.background = texture;
-  scene.environment = texture;
-});
+// const rgbeLoader = new RGBELoader(loadingManager);
+// rgbeLoader.load("./garden.hdr", (texture) => {
+//   texture.mapping = THREE.EquirectangularReflectionMapping;
+//   // scene.background = texture;
+//   // scene.environment = texture;
+// });
 
 // Sizes
 const sizes = {
@@ -301,7 +270,9 @@ const updateBlobConfig = (config) => {
   }
 
   if (config.map !== undefined) {
-    new THREE.TextureLoader().load(`./${config.map}.png`, (texture) => {
+    textureLoader.load(`/${config.map}.png`, (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      console.log("CURRENT TEXTURE", config.map);
       material.map = texture;
       material.needsUpdate = true;
     });
@@ -377,9 +348,29 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
+// Studio Environment Lighting (Neutral reflections without background photos)
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+scene.environment = pmremGenerator.fromScene(
+  new RoomEnvironment(),
+  0.04,
+).texture;
+
 // Controls
 // const controls = new OrbitControls(camera, canvas);
 // controls.enableDamping = true;
 
 // Animation Loop
 const clock = new THREE.Clock();
+
+const tick = () => {
+  // Update uniforms
+  uniforms.uTime.value = clock.getElapsedTime();
+
+  // Render
+  renderer.render(scene, camera);
+
+  // Call tick again on the next frame
+  window.requestAnimationFrame(tick);
+};
+
+tick();
