@@ -11,7 +11,6 @@ import textVertex from "./shaders/textVertex.glsl";
 import gsap from "gsap";
 import { blobs } from "./blobs.js";
 
-
 let isAnimating = false;
 let currIdx = 0;
 
@@ -45,13 +44,20 @@ const uniforms = {
 // Geometry
 const mergeGeometry = new mergeVertices(new THREE.IcosahedronGeometry(1, 90));
 
-// Texture Loader Helper
+// Texture Loader Helper with Cache & Preloading
 const textureLoader = new THREE.TextureLoader();
+const textureCache = {};
 const loadTexture = (name) => {
-  const tex = textureLoader.load(`/${name}.png`);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  if (!textureCache[name]) {
+    const tex = textureLoader.load(`/${name}.png`);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    textureCache[name] = tex;
+  }
+  return textureCache[name];
 };
+
+// Preload all blob textures at startup
+blobs.forEach((b) => loadTexture(b.config.map));
 
 // Material
 const material = new CustomShaderMaterial({
@@ -211,12 +217,9 @@ const updateBlobConfig = (config) => {
   }
 
   if (config.map !== undefined) {
-    textureLoader.load(`/${config.map}.png`, (texture) => {
-      texture.colorSpace = THREE.SRGBColorSpace;
-      console.log("CURRENT TEXTURE", config.map);
-      material.map = texture;
-      material.needsUpdate = true;
-    });
+    const tex = loadTexture(config.map);
+    material.map = tex;
+    material.needsUpdate = true;
   }
 };
 
@@ -229,12 +232,14 @@ function handleSlideChange(direction) {
   let next = (currIdx + direction + blobs.length) % blobs.length;
   console.log("Ranned", next);
 
-  // TODO Add scrollTrigger with pin...
+  // Movement prep
+  texts[next].scale.set(1, 1, 1);
+  texts[next].position.x = direction * 3;
 
-  // Swirlling logic
-  gsap.to(textMaterial.uniforms.progress, {
-    value: 0.5,
-    duration: 2,
+  const bg = new THREE.Color(blobs[next].background);
+
+  // GSAP Timeline to synchronize swirl, text movements, and background color transition
+  const tl = gsap.timeline({
     onComplete: () => {
       isAnimating = false;
       textMaterial.uniforms.progress.value = 0.0;
@@ -242,31 +247,43 @@ function handleSlideChange(direction) {
     },
   });
 
-  // TODO: use timeline to run swirl and shift at the same time...
-
-  // Movement logic
-  texts[next].scale.set(1, 1, 1);
-  texts[next].position.x = direction * 3;
-
-  gsap.to(texts[currIdx].position, {
-    x: -direction * 3,
-    duration: 2,
-    ease: "power2.inOut",
-  });
-  gsap.to(texts[next].position, {
-    x: 0,
-    duration: 2,
-    ease: "power2.inOut",
-  });
-
-  const bg = new THREE.Color(blobs[next].background);
-  gsap.to(scene.background, {
-    r: bg.r,
-    g: bg.g,
-    b: bg.b,
-    duration: 2,
-    ease: "linear",
-  });
+  tl.to(
+    textMaterial.uniforms.progress,
+    {
+      value: 0.5,
+      duration: 2,
+    },
+    0,
+  )
+    .to(
+      texts[currIdx].position,
+      {
+        x: -direction * 3,
+        duration: 2,
+        ease: "power2.inOut",
+      },
+      0,
+    )
+    .to(
+      texts[next].position,
+      {
+        x: 0,
+        duration: 2,
+        ease: "power2.inOut",
+      },
+      0,
+    )
+    .to(
+      scene.background,
+      {
+        r: bg.r,
+        g: bg.g,
+        b: bg.b,
+        duration: 2,
+        ease: "linear",
+      },
+      0,
+    );
 
   // Update blob uniforms and material properties for next blob
   updateBlobConfig(blobs[next].config);
