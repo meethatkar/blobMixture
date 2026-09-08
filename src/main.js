@@ -280,16 +280,16 @@ const updateBlobConfig = (config) => {
 };
 
 // Wheel Limiter
-
-window.addEventListener("wheel", (e) => {
+// 1. Abstract your transition logic into a reusable function
+function handleSlideChange(direction) {
   if (isAnimating) return;
   isAnimating = true;
-  let direction = Math.sign(e.deltaY);
+  
   let next = (currIdx + direction + blobs.length) % blobs.length;
   console.log("Ranned", next);
 
-  // TODO Add scrollTrigger with pin so hold in scroll will make text pause in middle of transition, and scroll down will reverse it. for better UX. (I know scrollTrigger, but applying it here is little different than normal one.)
-
+  // TODO Add scrollTrigger with pin...
+  
   // Swirlling logic
   gsap.to(textMaterial.uniforms.progress, {
     value: 0.5,
@@ -301,7 +301,8 @@ window.addEventListener("wheel", (e) => {
     },
   });
 
-  // TODO: use timeline to run swirl and shift at the same time, and to get next text slide in too in the same time only.
+  // TODO: use timeline to run swirl and shift at the same time...
+  
   // Movement logic
   texts[next].scale.set(1, 1, 1);
   texts[next].position.x = direction * 3;
@@ -328,6 +329,38 @@ window.addEventListener("wheel", (e) => {
 
   // Update blob uniforms and material properties for next blob
   updateBlobConfig(blobs[next].config);
+}
+
+// 2. Desktop Wheel Listener
+window.addEventListener("wheel", (e) => {
+  handleSlideChange(Math.sign(e.deltaY));
+});
+
+// 3. Mobile Touch Listeners
+let touchStartY = 0;
+let touchEndY = 0;
+const SWIPE_THRESHOLD = 40; // Minimum drag distance to trigger the transition
+
+window.addEventListener("touchstart", (e) => {
+  touchStartY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+window.addEventListener("touchmove", (e) => {
+  // Optional: if your canvas is fullscreen and you want to prevent the mobile browser from pulling to refresh or bouncing
+  // e.preventDefault(); // Note: to use this, change passive: true to false below
+}, { passive: true });
+
+window.addEventListener("touchend", (e) => {
+  touchEndY = e.changedTouches[0].screenY;
+  
+  // Calculate the difference. 
+  // Positive deltaY means user swiped up (scrolling down the page)
+  const deltaY = touchStartY - touchEndY; 
+
+  // Only trigger if the swipe is significant enough
+  if (Math.abs(deltaY) > SWIPE_THRESHOLD) {
+    handleSlideChange(Math.sign(deltaY));
+  }
 });
 
 // Camera
