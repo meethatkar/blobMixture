@@ -3,73 +3,14 @@ import * as THREE from "three";
 import CustomShaderMaterial from "three-custom-shader-material/vanilla";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 import { Text } from "troika-three-text";
 import vertexShader from "./shaders/vertex.glsl";
 import textVertex from "./shaders/textVertex.glsl";
 import gsap from "gsap";
+import { blobs } from "./blobs.js";
 
-const blobs = [
-  {
-    name: "Color Fusion",
-    background: "#9D73F7",
-    config: {
-      uPositionFrequency: 1,
-      uPositionStrength: 0.3,
-      uSmallWavePositionFrequency: 0.5,
-      uSmallWavePositionStrength: 0.7,
-      roughness: 0.8,
-      metalness: 0.1,
-      envMapIntensity: 0.4,
-      clearcoat: 0,
-      clearcoatRoughness: 0,
-      transmission: 0,
-      flatShading: false,
-      wireframe: false,
-      map: "cosmic-fusion",
-    },
-  },
-  {
-    name: "Purple Mirror",
-    background: "#5300B1",
-    config: {
-      uPositionFrequency: 0.584,
-      uPositionStrength: 0.276,
-      uSmallWavePositionFrequency: 0.899,
-      uSmallWavePositionStrength: 1.266,
-      roughness: 0.15,
-      metalness: 0.5,
-      envMapIntensity: 0.4,
-      clearcoat: 0.2,
-      clearcoatRoughness: 0,
-      transmission: 0,
-      flatShading: false,
-      wireframe: false,
-      map: "purple-rain",
-    },
-  },
-  {
-    name: "Alien Goo",
-    background: "#45ACD8",
-    config: {
-      uPositionFrequency: 1.022,
-      uPositionStrength: 0.99,
-      uSmallWavePositionFrequency: 0.378,
-      uSmallWavePositionStrength: 0.341,
-      roughness: 0.3,
-      metalness: 0.3,
-      envMapIntensity: 0.4,
-      clearcoat: 0.4,
-      clearcoatRoughness: 0.5,
-      transmission: 0,
-      flatShading: false,
-      wireframe: false,
-      map: "lucky-day",
-    },
-  },
-];
 
 let isAnimating = false;
 let currIdx = 0;
@@ -284,12 +225,12 @@ const updateBlobConfig = (config) => {
 function handleSlideChange(direction) {
   if (isAnimating) return;
   isAnimating = true;
-  
+
   let next = (currIdx + direction + blobs.length) % blobs.length;
   console.log("Ranned", next);
 
   // TODO Add scrollTrigger with pin...
-  
+
   // Swirlling logic
   gsap.to(textMaterial.uniforms.progress, {
     value: 0.5,
@@ -302,7 +243,7 @@ function handleSlideChange(direction) {
   });
 
   // TODO: use timeline to run swirl and shift at the same time...
-  
+
   // Movement logic
   texts[next].scale.set(1, 1, 1);
   texts[next].position.x = direction * 3;
@@ -341,21 +282,29 @@ let touchStartY = 0;
 let touchEndY = 0;
 const SWIPE_THRESHOLD = 40; // Minimum drag distance to trigger the transition
 
-window.addEventListener("touchstart", (e) => {
-  touchStartY = e.changedTouches[0].screenY;
-}, { passive: true });
+window.addEventListener(
+  "touchstart",
+  (e) => {
+    touchStartY = e.changedTouches[0].screenY;
+  },
+  { passive: true },
+);
 
-window.addEventListener("touchmove", (e) => {
-  // Optional: if your canvas is fullscreen and you want to prevent the mobile browser from pulling to refresh or bouncing
-  // e.preventDefault(); // Note: to use this, change passive: true to false below
-}, { passive: true });
+window.addEventListener(
+  "touchmove",
+  (e) => {
+    // Optional: if your canvas is fullscreen and you want to prevent the mobile browser from pulling to refresh or bouncing
+    // e.preventDefault(); // Note: to use this, change passive: true to false below
+  },
+  { passive: true },
+);
 
 window.addEventListener("touchend", (e) => {
   touchEndY = e.changedTouches[0].screenY;
-  
-  // Calculate the difference. 
+
+  // Calculate the difference.
   // Positive deltaY means user swiped up (scrolling down the page)
-  const deltaY = touchStartY - touchEndY; 
+  const deltaY = touchStartY - touchEndY;
 
   // Only trigger if the swipe is significant enough
   if (Math.abs(deltaY) > SWIPE_THRESHOLD) {
